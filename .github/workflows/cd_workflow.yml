@@ -1,0 +1,62 @@
+name: CD Reusable Workflow
+
+on:
+  workflow_call:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    environment: ${{ github.ref == 'refs/heads/main' && 'PROD' || 'DEV' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Configure AWS credentials (OIDC) for Dev deployment
+        if: github.ref == 'refs/heads/dev' 
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::992382722318:role/deploy-dev
+          aws-region: eu-west-2
+          role-session-name: github-actions-cdk-deploy
+
+      - name: Configure AWS credentials (OIDC) for Prod deployment
+        if: github.ref == 'refs/heads/main' 
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::588077357019:role/deploy-prod
+          aws-region: eu-west-2
+          role-session-name: github-actions-cdk-deploy
+
+      - name: Install AWS CDK CLI
+        run: npm install -g aws-cdk
+
+      - name: CDK synth
+        run: |
+          source .venv/bin/activate
+          PHASE=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+          cdk synth --context phase=$PHASE
+
+      - name: CDK deploy
+        run: |
+          source .venv/bin/activate
+          PHASE=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+          cdk deploy --all --require-approval never --context phase=$PHASE

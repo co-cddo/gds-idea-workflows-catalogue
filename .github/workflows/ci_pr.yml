@@ -1,0 +1,16 @@
+name: CI (PR)
+
+on:
+  pull_request:
+    branches: 
+      - main
+      - dev
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci_workflow.yml
+    with:
+      run-version-check: true
