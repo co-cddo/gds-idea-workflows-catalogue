@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   ci:
-    uses: ./.github/workflows/ci_workflow.yml
+    uses: ./.github/workflows/ci_workflow_cdk.yml
     with:
       run-version-check: true
     secrets: inherit 
