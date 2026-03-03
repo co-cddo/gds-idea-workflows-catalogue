@@ -12,9 +12,9 @@ permissions:
 
 jobs:
   ci:
-    uses: ./.github/workflows/ci_workflow.yml
+    uses: ./.github/workflows/cdk_ci_workflow.yml
     with:
       run-version-check: false
   cd:
     needs: ci
-    uses: ./.github/workflows/cd_workflow.yml
+    uses: ./.github/workflows/cdk_cd_workflow.yml
