@@ -157,4 +157,5 @@ jobs:
         with:
           failOnDestructiveChanges: false
           fail-on-diff: false
+          app-args: "--context phase=${{ steps.env.outputs.PHASE }} --fail=false"
           githubToken: ${{ secrets.GITHUB_TOKEN }}
