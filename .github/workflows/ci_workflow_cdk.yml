@@ -156,5 +156,5 @@ jobs:
         uses: corymhall/cdk-diff-action@v2
         with:
           failOnDestructiveChanges: false
+          fail-on-diff: false
           githubToken: ${{ secrets.GITHUB_TOKEN }}
-          app-args: "--app cdk.out --fail=false"
