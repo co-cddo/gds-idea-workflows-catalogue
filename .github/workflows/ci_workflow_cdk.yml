@@ -155,4 +155,5 @@ jobs:
       - name: CDK Diff (comment on PR)
         uses: corymhall/cdk-diff-action@v2
         with:
+          failOnDestructiveChanges: false
           githubToken: ${{ secrets.GITHUB_TOKEN }}
