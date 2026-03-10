@@ -10,8 +10,8 @@ jobs:
 
   check-source:
       name: Check PR source branch
-      # Only runs for PRs. Specifically checks those targeting 'main' or 'prod'
-      if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'prod')
+      # Only runs for PRs. Specifically checks those targeting 'prod' or 'prod'
+      if: github.event_name == 'pull_request' && github.base_ref == 'prod'
       runs-on: ubuntu-latest
       steps:
         - name: Verify PR comes from dev
