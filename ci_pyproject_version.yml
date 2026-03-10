@@ -1,0 +1,28 @@
+name: CI Pyproject Version Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      run-version-check:
+        type: boolean
+
+jobs:
+
+  # Run the version-bump check ONLY on pull requests
+  name: Check version has been bumped
+  if: inputs.run-version-check
+  run: |
+    PR_VERSION=$(grep -oP '^version = "\K[^"]*' pyproject.toml)
+
+    git fetch origin "${{ github.base_ref }}"
+    BASE_VERSION=$(git show "origin/${{ github.base_ref }}:pyproject.toml" | grep -oP '^version = "\K[^"]*')
+
+    echo "Base version: $BASE_VERSION"
+    echo "PR version: $PR_VERSION"
+
+    if [ "$PR_VERSION" = "$BASE_VERSION" ]; then
+      echo "❌ Version in pyproject.toml has not been bumped"
+      exit 1
+    fi
+
+    echo "✅ Version bumped from $BASE_VERSION to $PR_VERSION"

@@ -1,0 +1,25 @@
+name: CI Dev Branch Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      run-version-check:
+        type: boolean
+
+jobs:
+
+  check-source:
+      name: Check PR source branch
+      # Only runs for PRs. Specifically checks those targeting 'main' or 'prod'
+      if: github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'prod')
+      runs-on: ubuntu-latest
+      steps:
+        - name: Verify PR comes from dev
+          run: |
+            echo "Target branch: ${{ github.base_ref }}"
+            echo "Source branch: ${{ github.head_ref }}"
+            if [ "${{ github.head_ref }}" != "dev" ]; then
+              echo "::error::Strict Branching Policy: PRs to ${{ github.base_ref }} must originate from the 'dev' branch. This PR is coming from '${{ github.head_ref }}'."
+              exit 1
+            fi
+            echo "✅ Source branch is dev — OK"

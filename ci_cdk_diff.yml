@@ -1,0 +1,76 @@
+name: CI CDK PR Diff Reusable Workflow
+
+on:
+  workflow_call:
+    inputs:
+      run-version-check:
+        type: boolean
+
+jobs:
+
+  cdk-diff:
+    if: github.event_name == 'pull_request'
+    name: CDK Diff (comment on PR)
+    runs-on: ubuntu-latest
+    needs: test
+
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install AWS CDK CLI
+        run: npm install -g aws-cdk
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Select env from PR target branch
+        id: env
+        run: |
+          if [ "${{ github.base_ref }}" = "dev" ]; then
+            echo "PHASE=dev" >> $GITHUB_OUTPUT
+            echo "ROLE_ARN=arn:aws:iam::992382722318:role/deploy-dev" >> $GITHUB_OUTPUT
+          elif [ "${{ github.base_ref }}" = "main" ]; then
+            echo "PHASE=prod" >> $GITHUB_OUTPUT
+            echo "ROLE_ARN=arn:aws:iam::588077357019:role/deploy-prod" >> $GITHUB_OUTPUT
+          else
+            echo "Unsupported base branch: ${{ github.base_ref }}"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ steps.env.outputs.ROLE_ARN }}
+          aws-region: eu-west-2
+          role-session-name: github-actions-cdk-diff
+
+      - name: CDK synth (produce cdk.out)
+        run: |
+          source .venv/bin/activate
+          cdk synth --context phase=${{ steps.env.outputs.PHASE }}
+
+      - name: CDK Diff (comment on PR)
+        uses: corymhall/cdk-diff-action@v2
+        with:
+          failOnDestructiveChanges: false
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
