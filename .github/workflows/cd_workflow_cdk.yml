@@ -11,7 +11,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     
-    environment: ${{ github.ref == 'refs/heads/main' && 'PROD' || 'DEV' }}
+    environment: ${{ github.ref == 'refs/heads/prod' && 'PROD' || 'DEV' }}
 
     steps:
       - name: Checkout
@@ -39,7 +39,7 @@ jobs:
           role-session-name: github-actions-cdk-deploy
 
       - name: Configure AWS credentials (OIDC) for Prod deployment
-        if: github.ref == 'refs/heads/main' 
+        if: github.ref == 'refs/heads/prod' 
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::588077357019:role/deploy-prod
@@ -52,11 +52,11 @@ jobs:
       - name: CDK synth
         run: |
           source .venv/bin/activate
-          PHASE=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+          PHASE=${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
           cdk synth --context phase=$PHASE
 
       - name: CDK deploy
         run: |
           source .venv/bin/activate
-          PHASE=${{ github.ref == 'refs/heads/main' && 'prod' || 'dev' }}
+          PHASE=${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
           cdk deploy --all --require-approval never --context phase=$PHASE
