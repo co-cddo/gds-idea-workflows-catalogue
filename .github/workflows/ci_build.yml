@@ -10,7 +10,6 @@ jobs:
 
   build:
     name: Build
-    needs: check-source
     runs-on: ubuntu-latest
 
     steps:
