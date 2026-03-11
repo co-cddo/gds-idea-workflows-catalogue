@@ -7,8 +7,6 @@ on:
         type: boolean
 
 jobs:
-
-jobs:
   pyproject_version:
     name: Check version has been bumped
     if: ${{ inputs.run-version-check }}
