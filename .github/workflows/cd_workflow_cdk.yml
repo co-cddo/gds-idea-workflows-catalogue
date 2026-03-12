@@ -10,7 +10,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'
     environment: ${{ github.ref == 'refs/heads/prod' && 'PROD' || 'DEV' }}
 
     steps:
