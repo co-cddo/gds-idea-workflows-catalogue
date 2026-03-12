@@ -47,10 +47,10 @@ jobs:
         run: |
           if [ "${{ github.base_ref }}" = "dev" ]; then
             echo "PHASE=dev" >> $GITHUB_OUTPUT
-            echo "ROLE_ARN=arn:aws:iam::992382722318:role/deploy-dev" >> $GITHUB_OUTPUT
+            echo "ROLE_ARN=arn:aws:iam::992382722318:role/cdk-dev-diff" >> $GITHUB_OUTPUT
           elif [ "${{ github.base_ref }}" = "prod" ]; then
             echo "PHASE=prod" >> $GITHUB_OUTPUT
-            echo "ROLE_ARN=arn:aws:iam::588077357019:role/deploy-prod" >> $GITHUB_OUTPUT
+            echo "ROLE_ARN=arn:aws:iam::588077357019:role/cdk-prod-diff" >> $GITHUB_OUTPUT
           else
             echo "Unsupported base branch: ${{ github.base_ref }}"
             exit 1
@@ -61,7 +61,7 @@ jobs:
         with:
           role-to-assume: ${{ steps.env.outputs.ROLE_ARN }}
           aws-region: eu-west-2
-          role-session-name: github-actions-cdk-diff
+          role-session-name: ${{ github.event.repository.name }}
 
       - name: CDK synth (produce cdk.out)
         run: |
