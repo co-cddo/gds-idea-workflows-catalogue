@@ -16,12 +16,12 @@ These workflows currently support AWS CDK application testing and deployment. Py
 This catalogue assumes the following flow:
 
 feature/* → PR → dev → merge → deploy to DEV  
-dev → PR → main → merge → deploy to PROD
+dev → PR → prod → merge → deploy to PROD
 
 - PRs trigger CI and infrastructure diff
 - Merges trigger CD deployment
 - `dev` branch deploys to the DEV AWS account
-- `main` branch deploys to the PROD AWS account
+- `prod` branch deploys to the PROD AWS account
 
 ## Reusable Workflows
 
