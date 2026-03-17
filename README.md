@@ -30,6 +30,7 @@ dev → PR → prod → merge → deploy to PROD
 | `ci_build.yml` | Builds the project artifacts and validates that the application can compile/package successfully. |
 | `ci_tests.yml` | Runs the automated test suite (unit/integration) to ensure code changes do not break functionality. |
 | `ci_lint.yml` | Executes linting and static code analysis to enforce coding standards and detect potential issues. |
+| `ci_dev_branch_policy.yml` | Enforces the branching policy by ensuring pull requests targeting the `prod` branch originate only from the `dev` branch. |
 | `ci_cdk_diff.yml` | Runs `cdk diff` to compare proposed infrastructure changes against the currently deployed AWS stacks. |
 | `ci_pyproject_version.yml` |  Checks the `pyproject.toml` version against the currently deployed production version and fails the pipeline if the version has not been incremented |
 | `cd_workflow_cdk.yml` | Handles continuous deployment of AWS infrastructure using AWS CDK, deploying approved changes to DEV and PROD environments. |
