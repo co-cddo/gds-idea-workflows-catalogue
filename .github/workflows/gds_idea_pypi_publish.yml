@@ -63,8 +63,8 @@ jobs:
 
       - name: Generate GitHub App token
         id: app-token
-        if: ${{ secrets.GDS_IDEA_PYPI_APP_ID != '' }}
         uses: actions/create-github-app-token@v2
+        continue-on-error: true
         with:
           app-id: ${{ secrets.GDS_IDEA_PYPI_APP_ID }}
           private-key: ${{ secrets.GDS_IDEA_PYPI_APP_PRIVATE_KEY }}
@@ -72,7 +72,7 @@ jobs:
           repositories: gds-idea-pypi
 
       - name: Trigger PyPI index rebuild
-        if: steps.app-token.outputs.token != ''
+        if: steps.app-token.outcome == 'success'
         run: |
           gh api repos/co-cddo/gds-idea-pypi/dispatches \
             -f event_type=rebuild-index \
