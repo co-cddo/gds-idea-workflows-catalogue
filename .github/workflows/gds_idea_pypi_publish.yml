@@ -37,8 +37,6 @@ jobs:
   build-and-upload:
     name: Build & Publish
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # needed for gh release upload
     steps:
       - uses: actions/checkout@v4
         with:
