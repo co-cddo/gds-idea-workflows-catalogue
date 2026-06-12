@@ -14,6 +14,10 @@ name: Auto Tag & Release
 
 on:
   workflow_call:
+    outputs:
+      tag:
+        description: "The tag that was created (empty string if skipped)"
+        value: ${{ jobs.auto-tag.outputs.tag }}
 
 permissions:
   contents: write
@@ -22,6 +26,8 @@ jobs:
   auto-tag:
     name: Tag & Release
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:

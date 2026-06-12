@@ -2,25 +2,29 @@ name: Build & Publish to GDS IDEA PyPI Index
 
 # Reusable workflow for package repos.
 #
-# Add this to your package repo's release workflow:
+# Usage (chained after auto_tag_release.yml):
 #
-#   on:
-#     release:
-#       types: [published]
-#   jobs:
-#     publish:
-#       uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/gds_idea_pypi_publish.yml@main
-#       secrets: inherit
+#   publish:
+#     needs: release
+#     if: needs.release.outputs.tag != ''
+#     uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/gds_idea_pypi_publish.yml@main
+#     with:
+#       tag: ${{ needs.release.outputs.tag }}
+#     secrets: inherit
 #
 # Prerequisites:
 #   - Your repo must have a pyproject.toml with a [build-system] section.
-#   - The workflow is triggered by a published release (tag push + release creation).
 #   - To trigger the index rebuild, set org-level secrets:
 #     GDS_IDEA_PYPI_APP_ID and GDS_IDEA_PYPI_APP_PRIVATE_KEY
 #     (from a GitHub App installed on co-cddo/gds-idea-pypi with contents:write).
 
 on:
   workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+        description: "The release tag to publish (e.g. v0.1.0)"
     secrets:
       GDS_IDEA_PYPI_APP_ID:
         description: "App ID for the gds-idea-pypi-rebuild GitHub App"
@@ -37,6 +41,9 @@ jobs:
       contents: write  # needed for gh release upload
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+          fetch-depth: 0
 
       - uses: astral-sh/setup-uv@v7
         with:
@@ -44,7 +51,7 @@ jobs:
 
       - name: Strip v prefix from tag
         id: version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+        run: echo "version=${{ inputs.tag }}" | sed 's/v//' >> "$GITHUB_OUTPUT"
 
       - name: Build wheel and sdist
         run: uv build
@@ -52,7 +59,7 @@ jobs:
           SETUPTOOLS_SCM_PRETEND_VERSION: ${{ steps.version.outputs.version }}
 
       - name: Upload artifacts to GitHub Release
-        run: gh release upload "${{ github.ref_name }}" dist/*.whl dist/*.tar.gz --clobber
+        run: gh release upload "${{ inputs.tag }}" dist/*.whl dist/*.tar.gz --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -72,6 +79,6 @@ jobs:
           gh api repos/co-cddo/gds-idea-pypi/dispatches \
             -f event_type=rebuild-index \
             -f "client_payload[repo]=${{ github.repository }}" \
-            -f "client_payload[tag]=${{ github.ref_name }}"
+            -f "client_payload[tag]=${{ inputs.tag }}"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
