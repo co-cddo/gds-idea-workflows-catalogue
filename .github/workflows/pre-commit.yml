@@ -1,0 +1,43 @@
+name: Run pre-commit
+
+on:
+  workflow_call:
+    inputs:
+      terraform_setup:
+        type: boolean
+        required: false
+        default: false
+        description: "Whether to setup terraform"
+      terraform_version:
+        type: string
+        required: false
+        default: 1.15.6
+        description: "Terraform version to use"
+      uv_setup:
+        type: boolean
+        required: false
+        default: false
+        description: "Whether to setup uv"
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+    - id: checkout
+      name: Check out code
+      uses: actions/checkout@v6
+
+    - name: Setup Terraform
+      if: ${{ inputs.terraform_setup }}
+      uses: hashicorp/setup-terraform@v4
+      with:
+        terraform_version: ${{ inputs.terraform_version }}
+    
+    - name: Install uv and set the python version
+      if: ${{ inputs.uv_setup }}
+      uses: astral-sh/setup-uv@v8
+      with:
+        enable-cache: true
+
+    - id: pre-commit
+      uses: pre-commit/action@v3.0.1

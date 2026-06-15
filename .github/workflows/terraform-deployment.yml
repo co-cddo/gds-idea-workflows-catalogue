@@ -1,0 +1,147 @@
+name: Deploy AWS resources with Terraform
+
+on:
+  workflow_call:
+    inputs:
+      aws_account_id:
+        type: number
+        required: false
+        default: 539502489680
+        description: "AWS account ID managing deployment"
+      terraform_version:
+        type: string
+        required: false
+        default: 1.15.6
+        description: "Terraform version to use"
+      terraform_workspace:
+        type: string
+        required: false
+        default: development
+        description: "Terraform workspace to work with"
+      terraform_var_command:
+        type: string
+        required: false
+        default: plan
+        description: "Terraform command to execute, plan or apply"
+      uv_setup:
+        type: boolean
+        required: false
+        default: false
+        description: "Whether to setup uv"
+
+jobs:
+  terraform_deployment:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TF_IN_AUTOMATION: true
+      EXPAND_SUMMARY_DETAILS: true
+      TF_WORKSPACE: ${{ inputs.terraform_workspace }}
+      TF_VAR_command: ${{ inputs.terraform_var_command }}
+    steps:
+      - id: checkout
+        name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Install uv and set the python version
+        if: ${{ inputs.uv_setup }}
+        uses: astral-sh/setup-uv@v8
+        with:
+          enable-cache: true
+
+      - id: aws-configure-plan
+        name: Configure AWS credentials for terraform plan
+        if: inputs.terraform_var_command == 'plan'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/GitActions-Deployment-Workspaces-Plan
+          role-session-name: ${{ github.event.repository.name }}
+          aws-region: eu-west-2
+
+      - id: aws-configure-apply
+        name: Configure AWS credentials for terraform apply
+        if: inputs.terraform_var_command == 'apply'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/GitActions-Deployment-Workspaces
+          role-session-name: ${{ github.event.repository.name }}
+          aws-region: eu-west-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Terraform Format
+        id: fmt
+        run: |
+          terraform fmt -check -recursive
+        continue-on-error: true
+
+      - name: Post Format
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.fmt.outcome == 'success' || steps.fmt.outcome == 'failure')
+        uses: Jimdo/terraform-pr-commenter@v1
+        with:
+          commenter_type: fmt
+          commenter_input: ${{ format('{0}{1}', steps.fmt.outputs.stdout, steps.fmt.outputs.stderr) }}
+          commenter_exitcode: ${{ steps.fmt.outputs.exitcode }}
+
+      - name: Terraform Init
+        id: init
+        run: |
+          terraform init
+
+      - name: Post Init
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.init.outcome == 'success' || steps.init.outcome == 'failure')
+        uses: Jimdo/terraform-pr-commenter@v1
+        with:
+          commenter_type: init
+          commenter_input: ${{ format('{0}{1}', steps.init.outputs.stdout, steps.init.outputs.stderr) }}
+          commenter_exitcode: ${{ steps.init.outputs.exitcode }}
+
+      - name: Terraform Validate
+        id: validate
+        run: |
+          terraform validate
+
+      - name: Post Validate
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        uses: Jimdo/terraform-pr-commenter@v1
+        with:
+          commenter_type: validate
+          commenter_input: ${{ format('{0}{1}', steps.validate.outputs.stdout, steps.validate.outputs.stderr) }}
+          commenter_exitcode: ${{ steps.validate.outputs.exitcode }}
+
+      - name: Terraform Plan
+        id: plan
+        run:  |
+          terraform plan -lock-timeout=5m -out workspace.plan
+
+      - name: Format plan
+        id: format-plan
+        run: |
+          plan=$(cat <<'EOF'
+          ${{ format('{0}{1}', steps.plan.outputs.stdout, steps.plan.outputs.stderr) }}
+          EOF
+          )
+          echo "PLAN<<EOF" >> $GITHUB_ENV
+          echo "${plan:0:65536}" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Post Plan
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        uses: Jimdo/terraform-pr-commenter@v1
+        with:
+          commenter_type: plan
+          commenter_input: ${{ steps.format-plan.outputs.plan }}
+          commenter_exitcode: ${{ steps.plan.outputs.exitcode }}
+
+      - name: Terraform Apply
+        id: apply
+        if: inputs.terraform_var_command == 'apply'
+        run: |
+          terraform apply -lock-timeout=5m workspace.plan
