@@ -8,6 +8,7 @@ These workflows standardise:
 - AWS CDK infrastructure diff on PRs
 - Branch-based deployment to DEV and PROD
 - OIDC-based AWS authentication
+- Terraform deployments
 
 These workflows currently support AWS CDK application testing and deployment. Python package workflows will be added in a future release.
 
@@ -34,3 +35,6 @@ dev → PR → prod → merge → deploy to PROD
 | `ci_cdk_diff.yml` | Runs `cdk diff` to compare proposed infrastructure changes against the currently deployed AWS stacks. |
 | `ci_pyproject_version.yml` |  Checks the `pyproject.toml` version against the currently deployed production version and fails the pipeline if the version has not been incremented |
 | `cd_workflow_cdk.yml` | Handles continuous deployment of AWS infrastructure using AWS CDK, deploying approved changes to DEV and PROD environments. |
+| `pre-commit.yml` | Runs repository pre-commit file. |
+| `terraform-deployment.yml` | Handles continuous deployment of AWS infrastructure using Terraform, deploying approved changes to DEV and PROD environments. |
+| `branch-protection.yml` | Checks if action was triggered with allowed branch. |
