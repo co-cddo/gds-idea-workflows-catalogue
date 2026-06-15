@@ -8,6 +8,16 @@ on:
         required: false
         default: 539502489680
         description: "AWS account ID managing deployment"
+      aws_role_plan_name:
+        type: string
+        required: false
+        default: GitActions-Deployment-Workspaces-Plan
+        description: "AWS role name for executing plan command"
+      aws_role_apply_name:
+        type: string
+        required: false
+        default: GitActions-Deployment-Workspaces
+        description: "AWS role name for executing apply command"
       terraform_version:
         type: string
         required: false
