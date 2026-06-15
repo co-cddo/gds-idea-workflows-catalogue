@@ -35,7 +35,7 @@ jobs:
     
     - name: Install uv and set the python version
       if: ${{ inputs.uv_setup }}
-      uses: astral-sh/setup-uv@v8
+      uses: astral-sh/setup-uv@v6
       with:
         enable-cache: true
 
