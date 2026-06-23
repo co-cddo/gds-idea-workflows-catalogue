@@ -33,6 +33,11 @@ on:
         required: false
         default: plan
         description: "Terraform command to execute, plan or apply"
+      terraform_chdir:
+        type: string
+        required: false
+        default: .
+        description: "Terraform working dirrectory"
       uv_setup:
         type: boolean
         required: false
@@ -89,7 +94,7 @@ jobs:
       - name: Terraform Format
         id: fmt
         run: |
-          terraform fmt -check -recursive
+          terraform -chdir=${{ inputs.terraform_chdir }} fmt -check -recursive
         continue-on-error: true
 
       - name: Post Format
@@ -103,7 +108,7 @@ jobs:
       - name: Terraform Init
         id: init
         run: |
-          terraform init
+          terraform -chdir=${{ inputs.terraform_chdir }} init
 
       - name: Post Init
         if: always() && (inputs.terraform_var_command == 'plan') && (steps.init.outcome == 'success' || steps.init.outcome == 'failure')
@@ -116,7 +121,7 @@ jobs:
       - name: Terraform Validate
         id: validate
         run: |
-          terraform validate
+          terraform -chdir=${{ inputs.terraform_chdir }} validate
 
       - name: Post Validate
         if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
@@ -129,7 +134,7 @@ jobs:
       - name: Terraform Plan
         id: plan
         run:  |
-          terraform plan -lock-timeout=5m -out workspace.plan
+          terraform -chdir=${{ inputs.terraform_chdir }} plan -lock-timeout=5m -out workspace.plan
 
       - name: Format plan
         id: format-plan
@@ -154,4 +159,4 @@ jobs:
         id: apply
         if: inputs.terraform_var_command == 'apply'
         run: |
-          terraform apply -lock-timeout=5m workspace.plan
+          terraform -chdir=${{ inputs.terraform_chdir }} apply -lock-timeout=5m workspace.plan
