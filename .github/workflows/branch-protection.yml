@@ -18,10 +18,10 @@ jobs:
       uses: thollander/actions-comment-pull-request@v3
       with:
         message: |
-          "Error: Pull request must come from '${{ inputs.branch_name }}' branch"
+          "Error: Pull request must come from '${{ inputs.branch_name }}' branch, but come from '${{ github.head_ref }}'"
 
     - name: Check branch
       if: github.head_ref != inputs.branch_name
       run: |
-        echo "Error: Pull request must come from '${{ inputs.branch_name }}' branch"
+        echo "Error: Pull request must come from '${{ inputs.branch_name }}' branch, but come from '${{ github.head_ref }}'"
         exit 1
