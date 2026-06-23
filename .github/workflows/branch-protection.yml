@@ -14,14 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Comment PR
-      if: github.base_ref != inputs.branch_name
+      if: github.head_ref != inputs.branch_name
       uses: thollander/actions-comment-pull-request@v3
       with:
         message: |
           "Error: Pull request must come from '${{ inputs.branch_name }}' branch"
 
     - name: Check branch
-      if: github.base_ref != inputs.branch_name
+      if: github.head_ref != inputs.branch_name
       run: |
         echo "Error: Pull request must come from '${{ inputs.branch_name }}' branch"
         exit 1
