@@ -12,18 +12,16 @@ on:
 jobs:
   check-branch:
     runs-on: ubuntu-latest
-    env:
-      BRANCH_REF: 'refs/heads/${{ inputs.branch_name }}'
     steps:
     - name: Comment PR
-      if: github.ref != env.BRANCH_REF
+      if: github.base_ref != inputs.branch_name
       uses: thollander/actions-comment-pull-request@v3
       with:
         message: |
           "Error: Pull request must come from '${{ inputs.branch_name }}' branch"
 
     - name: Check branch
-      if: github.ref != env.BRANCH_REF
+      if: github.base_ref != inputs.branch_name
       run: |
         echo "Error: Pull request must come from '${{ inputs.branch_name }}' branch"
         exit 1
