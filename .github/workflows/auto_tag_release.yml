@@ -21,12 +21,14 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
 
 jobs:
   auto-tag:
     name: Tag & Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     outputs:
       tag: ${{ steps.version.outputs.tag }}
     steps:
