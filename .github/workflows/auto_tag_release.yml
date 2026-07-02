@@ -58,7 +58,7 @@ jobs:
 
       - name: Get PR labels
         if: steps.check.outputs.skip == 'false' && steps.pr.outputs.number != ''
-        uses: snnaplab/get-labels-action@v1
+        uses: snnaplab/get-labels-action@v1.0.1
         with:
           number: ${{ steps.pr.outputs.number }}
 
