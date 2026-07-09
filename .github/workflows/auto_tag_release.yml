@@ -45,35 +45,29 @@ jobs:
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Get PR number from merge commit
-        if: steps.check.outputs.skip == 'false'
-        id: pr
-        run: |
-          # Try (#N) format first (squash merge / rebase merge)
-          PR_NUMBER=$(git log -1 --format='%s' | grep -oE '\(#[0-9]+\)' | grep -oE '[0-9]+' | tail -1)
-          # Fallback: "Merge pull request #N" format (standard merge)
-          if [ -z "$PR_NUMBER" ]; then
-            PR_NUMBER=$(git log -1 --format='%s' | grep -oE 'Merge pull request #[0-9]+' | grep -oE '[0-9]+')
-          fi
-          echo "PR number: $PR_NUMBER"
-          echo "number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-
-      - name: Get PR labels
-        if: steps.check.outputs.skip == 'false' && steps.pr.outputs.number != ''
-        uses: snnaplab/get-labels-action@v1.0.1
-        with:
-          number: ${{ steps.pr.outputs.number }}
-
       - name: Resolve bump level from PR labels
         if: steps.check.outputs.skip == 'false'
         id: bump
         run: |
-          LABELS="${LABELS:-[]}"
-          echo "Labels on merged PR: $LABELS"
+          # Get PR number associated with this commit via API
+          # Works for all merge strategies (squash, rebase, standard merge)
+          PR_NUMBER=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            --jq '.[0].number // empty' 2>/dev/null || echo "")
 
-          if echo "$LABELS" | jq -e 'index("bump:major")' > /dev/null 2>&1; then
+          if [ -n "$PR_NUMBER" ]; then
+            echo "PR #$PR_NUMBER found"
+            LABELS=$(gh api "repos/${{ github.repository }}/pulls/$PR_NUMBER" \
+              --jq '[.labels[].name] | join(",")' 2>/dev/null || echo "")
+          else
+            echo "No PR associated with this commit (direct push)"
+            LABELS=""
+          fi
+
+          echo "Labels: $LABELS"
+
+          if echo "$LABELS" | grep -q "bump:major"; then
             BUMP="major"
-          elif echo "$LABELS" | jq -e 'index("bump:minor")' > /dev/null 2>&1; then
+          elif echo "$LABELS" | grep -q "bump:minor"; then
             BUMP="minor"
           else
             BUMP="patch"
@@ -81,6 +75,8 @@ jobs:
 
           echo "Bump level: $BUMP"
           echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compute next version
         if: steps.check.outputs.skip == 'false'
