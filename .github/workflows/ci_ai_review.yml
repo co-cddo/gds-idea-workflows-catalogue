@@ -1,0 +1,63 @@
+# AI Code Review Reusable Workflow
+#
+# Runs an AI-powered code review on pull requests using AWS Bedrock Claude
+# and the GitHub MCP Server. Only triggers when the PR has the 'ai-review' label.
+#
+# Usage in consuming repos:
+#
+#   on:
+#     pull_request:
+#       types: [opened, synchronize, labeled]
+#
+#   jobs:
+#     ai-review:
+#       uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/ci_ai_review.yml@main
+#       secrets: inherit
+#
+# To test with a specific branch before merging to main:
+#   uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/ci_ai_review.yml@ai_reviewer
+
+name: CI AI Code Review
+
+on:
+  workflow_call:
+    inputs:
+      aws_account_id:
+        type: string
+        required: false
+        default: "992382722318"
+        description: "AWS account ID with Bedrock access"
+      aws_role_name:
+        type: string
+        required: false
+        default: "ai-reviewer-role"
+        description: "IAM role name for Bedrock access (OIDC)"
+      model_id:
+        type: string
+        required: false
+        default: "anthropic.claude-sonnet-4-6"
+        description: "AWS Bedrock model ID for code review"
+      aws_region:
+        type: string
+        required: false
+        default: "eu-west-2"
+        description: "AWS region for Bedrock API"
+
+jobs:
+  ai-review:
+    # Only runs when PR has the 'ai-review' label - cost control mechanism
+    if: contains(github.event.pull_request.labels.*.name, 'ai-review')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: co-cddo/gds-idea-ai-reviewer@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          aws-role-arn: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.aws_role_name }}
+          aws-region: ${{ inputs.aws_region }}
+          model-id: ${{ inputs.model_id }}
