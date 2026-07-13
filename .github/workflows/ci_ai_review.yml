@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v3
+        uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
           private-key: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
