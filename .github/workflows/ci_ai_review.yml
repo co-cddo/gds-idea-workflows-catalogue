@@ -70,9 +70,9 @@ jobs:
     steps:
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
-          app-id: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
+          client-id: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
           private-key: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
           owner: co-cddo
           repositories: gds-idea-ai-reviewer,${{ github.event.repository.name }}
