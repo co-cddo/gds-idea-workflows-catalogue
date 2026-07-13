@@ -72,6 +72,9 @@ jobs:
         run: |
           echo "CLIENT_ID length: ${#CLIENT_ID}"
           echo "PRIVATE_KEY length: ${#PRIVATE_KEY}"
+          echo "First line: $(echo "$PRIVATE_KEY" | head -1)"
+          echo "Last line: $(echo "$PRIVATE_KEY" | tail -1)"
+          echo "Line count: $(echo "$PRIVATE_KEY" | wc -l)"
         env:
           CLIENT_ID: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
           PRIVATE_KEY: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
