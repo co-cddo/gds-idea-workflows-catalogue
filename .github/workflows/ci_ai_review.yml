@@ -16,6 +16,14 @@
 #
 # To test with a specific branch before merging to main:
 #   uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/ci_ai_review.yml@ai_reviewer
+#
+# Prerequisites:
+#   - AWS CDK deployed (ai-reviewer-role exists in the target account)
+#   - Org-level secrets: GDS_IDEA_AI_REVIEWER_APP_ID, GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY
+#     (from the gds-idea-ai-reviewer GitHub App)
+#   - The GitHub App must be installed on the consuming repo (controls which repos
+#     the reviewer is allowed to access — install/uninstall to grant/revoke access)
+#   - The 'ai-review' label must be applied to the PR to trigger the review
 
 name: CI AI Code Review
 
@@ -42,6 +50,13 @@ on:
         required: false
         default: "eu-west-2"
         description: "AWS region for Bedrock API"
+    secrets:
+      GDS_IDEA_AI_REVIEWER_APP_ID:
+        description: "GitHub App ID for checking out the AI reviewer repo"
+        required: false
+      GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY:
+        description: "GitHub App private key for checking out the AI reviewer repo"
+        required: false
 
 jobs:
   ai-review:
@@ -53,11 +68,49 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - uses: actions/checkout@v5
-
-      - uses: co-cddo/gds-idea-ai-reviewer@main
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v2
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          aws-role-arn: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.aws_role_name }}
+          app-id: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
+          private-key: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
+          owner: co-cddo
+          repositories: gds-idea-ai-reviewer,${{ github.event.repository.name }}
+
+      - name: Checkout AI reviewer
+        uses: actions/checkout@v5
+        with:
+          repository: co-cddo/gds-idea-ai-reviewer
+          token: ${{ steps.app-token.outputs.token }}
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.aws_role_name }}
           aws-region: ${{ inputs.aws_region }}
-          model-id: ${{ inputs.model_id }}
+          role-session-name: ai-reviewer-${{ github.event.repository.name }}
+
+      - name: Install dependencies
+        shell: bash
+        run: uv sync --frozen
+
+      - name: Run AI code review
+        shell: bash
+        run: uv run python -m ai_reviewer.run
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          MODEL_ID: ${{ inputs.model_id }}
+          AWS_REGION: ${{ inputs.aws_region }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
