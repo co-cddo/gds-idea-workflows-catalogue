@@ -68,27 +68,22 @@ jobs:
       contents: read
       pull-requests: write
     steps:
-      - name: Debug - check secrets are populated
-        run: |
-          echo "CLIENT_ID length: ${#CLIENT_ID}"
-          echo "PRIVATE_KEY length: ${#PRIVATE_KEY}"
-          echo "First line: $(echo "$PRIVATE_KEY" | head -1)"
-          echo "Last line: $(echo "$PRIVATE_KEY" | tail -1)"
-          echo "Line count: $(echo "$PRIVATE_KEY" | wc -l)"
-        env:
-          CLIENT_ID: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
-          PRIVATE_KEY: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
-
       - name: Generate GitHub App token
         id: app-token
         uses: actions/create-github-app-token@v3
+        continue-on-error: true
         with:
           client-id: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
           private-key: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
           owner: co-cddo
           repositories: gds-idea-ai-reviewer,${{ github.event.repository.name }}
 
+      - name: AI review skipped
+        if: steps.app-token.outcome != 'success'
+        run: echo "::notice::AI review skipped — GitHub App not installed on this repo or secrets not configured"
+
       - name: Checkout AI reviewer
+        if: steps.app-token.outcome == 'success'
         uses: actions/checkout@v5
         with:
           repository: co-cddo/gds-idea-ai-reviewer
@@ -96,16 +91,19 @@ jobs:
           ref: main
 
       - name: Set up Python
+        if: steps.app-token.outcome == 'success'
         uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
       - name: Install uv
+        if: steps.app-token.outcome == 'success'
         uses: astral-sh/setup-uv@v7
         with:
           version: "latest"
 
       - name: Configure AWS credentials (OIDC)
+        if: steps.app-token.outcome == 'success'
         uses: aws-actions/configure-aws-credentials@v6
         with:
           role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.aws_role_name }}
@@ -113,10 +111,12 @@ jobs:
           role-session-name: ai-reviewer-${{ github.event.repository.name }}
 
       - name: Install dependencies
+        if: steps.app-token.outcome == 'success'
         shell: bash
         run: uv sync --frozen
 
       - name: Run AI code review
+        if: steps.app-token.outcome == 'success'
         shell: bash
         run: uv run python -m ai_reviewer.run
         env:
