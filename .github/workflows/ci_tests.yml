@@ -22,3 +22,6 @@ jobs:
         run: uv sync --all-extras
       - name: Run tests with coverage
         run: uv run pytest -v
+      - name: Run app tests
+        if: hashFiles('app_src/pyproject.toml') != '' && hashFiles('app_src/tests/**/*.py') != ''
+        run: uv run --directory app_src pytest -v
