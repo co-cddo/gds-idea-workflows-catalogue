@@ -135,6 +135,7 @@ jobs:
         id: plan
         run:  |
           terraform -chdir=${{ inputs.terraform_chdir }} plan -lock-timeout=5m -out workspace.plan
+          terraform show workspace.plan > tfplan.txt
 
       - name: Format plan
         id: format-plan
@@ -152,7 +153,7 @@ jobs:
         uses: GetTerminus/terraform-pr-commenter@v3
         with:
           commenter_type: plan
-          commenter_input: ${{ steps.format-plan.outputs.plan }}
+          commenter_plan_path: tf_plan.txt
           commenter_exitcode: ${{ steps.plan.outputs.exitcode }}
 
       - name: Terraform Apply
