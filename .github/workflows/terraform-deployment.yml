@@ -57,7 +57,6 @@ jobs:
       EXPAND_SUMMARY_DETAILS: true
       TF_WORKSPACE: ${{ inputs.terraform_workspace }}
       TF_VAR_command: ${{ inputs.terraform_var_command }}
-      TF_VERSION: ${{ inputs.terraform_version }}
     steps:
       - id: checkout
         name: Check out code
@@ -105,6 +104,7 @@ jobs:
           commenter_type: fmt
           commenter_input: ${{ format('{0}{1}', steps.fmt.outputs.stdout, steps.fmt.outputs.stderr) }}
           commenter_exitcode: ${{ steps.fmt.outputs.exitcode }}
+          terraform_version: ${{ inputs.terraform_version }}
 
       - name: Terraform Init
         id: init
@@ -118,6 +118,7 @@ jobs:
           commenter_type: init
           commenter_input: ${{ format('{0}{1}', steps.init.outputs.stdout, steps.init.outputs.stderr) }}
           commenter_exitcode: ${{ steps.init.outputs.exitcode }}
+          terraform_version: ${{ inputs.terraform_version }}
 
       - name: Terraform Validate
         id: validate
@@ -131,6 +132,7 @@ jobs:
           commenter_type: validate
           commenter_input: ${{ format('{0}{1}', steps.validate.outputs.stdout, steps.validate.outputs.stderr) }}
           commenter_exitcode: ${{ steps.validate.outputs.exitcode }}
+          terraform_version: ${{ inputs.terraform_version }}
 
       - name: Terraform Plan
         id: plan
@@ -156,6 +158,7 @@ jobs:
           commenter_type: plan
           commenter_plan_path: tfplan.txt
           commenter_exitcode: ${{ steps.plan.outputs.exitcode }}
+          terraform_version: ${{ inputs.terraform_version }}
 
       - name: Terraform Apply
         id: apply
