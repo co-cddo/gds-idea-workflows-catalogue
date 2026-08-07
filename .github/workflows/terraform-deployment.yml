@@ -64,7 +64,7 @@ jobs:
 
       - name: Install uv and set the python version
         if: ${{ inputs.uv_setup }}
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9
         with:
           enable-cache: true
 
@@ -138,7 +138,12 @@ jobs:
         id: plan
         run:  |
           terraform -chdir=${{ inputs.terraform_chdir }} plan -lock-timeout=5m -out workspace.plan
-          terraform show workspace.plan > tfplan.txt
+      
+      - name: Terraform Show
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        id: show
+        run:  |
+          terraform -chdir=${{ inputs.terraform_chdir }} show workspace.plan > tfplan.txt
 
       - name: Format plan
         id: format-plan
