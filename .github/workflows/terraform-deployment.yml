@@ -156,7 +156,7 @@ jobs:
         uses: GetTerminus/terraform-pr-commenter@v3
         with:
           commenter_type: plan
-          commenter_plan_path: format('{0} {1} {2}', ${{ inputs.terraform_chdir }}, '/', 'tfplan.txt')
+          commenter_plan_path: ${{ format('{0}{1}{2}',  inputs.terraform_chdir, '/', 'tfplan.txt') }}
           commenter_exitcode: ${{ steps.plan.outputs.exitcode }}
           terraform_version: ${{ inputs.terraform_version }}
 
