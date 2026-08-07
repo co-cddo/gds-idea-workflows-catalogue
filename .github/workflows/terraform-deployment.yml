@@ -138,6 +138,11 @@ jobs:
         id: plan
         run:  |
           terraform -chdir=${{ inputs.terraform_chdir }} plan -lock-timeout=5m -out workspace.plan
+      
+      - name: Terraform Show
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        id: show
+        run:  |
           terraform -chdir=${{ inputs.terraform_chdir }} show workspace.plan > tfplan.txt
 
       - name: Format plan
