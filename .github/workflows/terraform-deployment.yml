@@ -145,7 +145,7 @@ jobs:
           terraform -chdir=${{ inputs.terraform_chdir }} plan -lock-timeout=5m -out workspace.plan
       
       - name: Terraform Show
-        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
         id: show
         run:  |
           terraform -chdir=${{ inputs.terraform_chdir }} show workspace.plan > tfplan.txt
@@ -162,7 +162,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Post Plan
-        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
         uses: GetTerminus/terraform-pr-commenter@v3
         with:
           commenter_type: plan
@@ -175,3 +175,11 @@ jobs:
         if: inputs.terraform_var_command == 'apply'
         run: |
           terraform -chdir=${{ inputs.terraform_chdir }} apply -lock-timeout=5m workspace.plan
+
+      - name: Release lock if exists
+        if: always() && (steps.plan.outcome == 'cancelled' || steps.apply.outcome == 'cancelled')
+        run: |
+          lock_id=$(terraform -chdir=${{ inputs.terraform_chdir }} plan -no-color -refresh=false 2>&1 | grep ' ID: ' | cut -d: -f2 | tr -d ' ' || true)
+          if [[ -n "${lock_id}" ]]; then
+            terraform -chdir=${{ inputs.terraform_chdir }} force-unlock -force ${lock_id}
+          fi
