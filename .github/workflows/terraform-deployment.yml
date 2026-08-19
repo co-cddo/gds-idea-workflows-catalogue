@@ -145,7 +145,7 @@ jobs:
           terraform -chdir=${{ inputs.terraform_chdir }} plan -lock-timeout=5m -out workspace.plan
       
       - name: Terraform Show
-        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
         id: show
         run:  |
           terraform -chdir=${{ inputs.terraform_chdir }} show workspace.plan > tfplan.txt
@@ -162,7 +162,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Post Plan
-        if: always() && (inputs.terraform_var_command == 'plan') && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+        if: always() && (inputs.terraform_var_command == 'plan') && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
         uses: GetTerminus/terraform-pr-commenter@v3
         with:
           commenter_type: plan
