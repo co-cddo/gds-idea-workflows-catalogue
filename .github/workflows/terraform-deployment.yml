@@ -175,3 +175,11 @@ jobs:
         if: inputs.terraform_var_command == 'apply'
         run: |
           terraform -chdir=${{ inputs.terraform_chdir }} apply -lock-timeout=5m workspace.plan
+
+      - name: Release lock if exists
+        if: always() && (steps.plan.outcome == 'cancelled' || steps.apply.outcome == 'cancelled')
+        run: |
+          lock_id=$(terraform plan -no-color -refresh=false 2>&1 | grep ' ID: ' | cut -d: -f2 | tr -d ' ' || true)
+          if [[ -n "${lock_id}" ]]; then
+            terraform force-unlock -force ${lock_id}
+          fi
