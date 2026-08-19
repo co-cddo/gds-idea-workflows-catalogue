@@ -179,7 +179,7 @@ jobs:
       - name: Release lock if exists
         if: always() && (steps.plan.outcome == 'cancelled' || steps.apply.outcome == 'cancelled')
         run: |
-          lock_id=$(terraform plan -chdir=${{ inputs.terraform_chdir }} -no-color -refresh=false 2>&1 | grep ' ID: ' | cut -d: -f2 | tr -d ' ' || true)
+          lock_id=$(terraform -chdir=${{ inputs.terraform_chdir }} plan -no-color -refresh=false 2>&1 | grep ' ID: ' | cut -d: -f2 | tr -d ' ' || true)
           if [[ -n "${lock_id}" ]]; then
             terraform -chdir=${{ inputs.terraform_chdir }} force-unlock -force ${lock_id}
           fi
