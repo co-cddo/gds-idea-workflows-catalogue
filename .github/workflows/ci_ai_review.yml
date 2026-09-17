@@ -50,6 +50,12 @@ on:
         required: false
         default: "eu-west-2"
         description: "AWS region for Bedrock API"
+      inference_profile_arn:
+        type: string
+        required: false
+        default: "arn:aws:bedrock:eu-west-2:992382722318:application-inference-profile/lrsdw93ch5ip"
+        description: "AI Reviewer inference profile ARN, used for per-team cost tracking"
+
     secrets:
       GDS_IDEA_AI_REVIEWER_APP_ID:
         description: "GitHub App ID for checking out the AI reviewer repo"
@@ -123,5 +129,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           MODEL_ID: ${{ inputs.model_id }}
           AWS_REGION: ${{ inputs.aws_region }}
+          BEDROCK_INFERENCE_PROFILE_ARN: ${{ inputs.inference_profile_arn }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
