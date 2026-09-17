@@ -43,7 +43,7 @@ on:
       model_id:
         type: string
         required: false
-        default: "anthropic.claude-sonnet-4-6"
+        default: "anthropic.claude-sonnet-5"
         description: "AWS Bedrock model ID for code review"
       aws_region:
         type: string
