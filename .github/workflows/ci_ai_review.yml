@@ -1,0 +1,134 @@
+# AI Code Review Reusable Workflow
+#
+# Runs an AI-powered code review on pull requests using AWS Bedrock Claude
+# and the GitHub MCP Server. Only triggers when the PR has the 'ai-review' label.
+#
+# Usage in consuming repos:
+#
+#   on:
+#     pull_request:
+#       types: [opened, synchronize, labeled]
+#
+#   jobs:
+#     ai-review:
+#       uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/ci_ai_review.yml@main
+#       secrets: inherit
+#
+# To test with a specific branch before merging to main:
+#   uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/ci_ai_review.yml@ai_reviewer
+#
+# Prerequisites:
+#   - AWS CDK deployed (ai-reviewer-role exists in the target account)
+#   - Org-level secrets: GDS_IDEA_AI_REVIEWER_APP_ID, GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY
+#     (from the gds-idea-ai-reviewer GitHub App)
+#   - The GitHub App must be installed on the consuming repo (controls which repos
+#     the reviewer is allowed to access — install/uninstall to grant/revoke access)
+#   - The 'ai-review' label must be applied to the PR to trigger the review
+
+name: CI AI Code Review
+
+on:
+  workflow_call:
+    inputs:
+      aws_account_id:
+        type: string
+        required: false
+        default: "992382722318"
+        description: "AWS account ID with Bedrock access"
+      aws_role_name:
+        type: string
+        required: false
+        default: "ai-reviewer-role"
+        description: "IAM role name for Bedrock access (OIDC)"
+      model_id:
+        type: string
+        required: false
+        default: "anthropic.claude-sonnet-5"
+        description: "AWS Bedrock model ID for code review"
+      aws_region:
+        type: string
+        required: false
+        default: "eu-west-2"
+        description: "AWS region for Bedrock API"
+      inference_profile_arn:
+        type: string
+        required: false
+        default: "arn:aws:bedrock:eu-west-2:992382722318:application-inference-profile/lrsdw93ch5ip"
+        description: "AI Reviewer inference profile ARN, used for per-team cost tracking"
+
+    secrets:
+      GDS_IDEA_AI_REVIEWER_APP_ID:
+        description: "GitHub App ID for checking out the AI reviewer repo"
+        required: false
+      GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY:
+        description: "GitHub App private key for checking out the AI reviewer repo"
+        required: false
+
+jobs:
+  ai-review:
+    # Only runs when PR has the 'ai-review' label - cost control mechanism
+    if: contains(github.event.pull_request.labels.*.name, 'ai-review')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        continue-on-error: true
+        with:
+          client-id: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
+          private-key: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
+          owner: co-cddo
+          repositories: gds-idea-ai-reviewer,${{ github.event.repository.name }}
+
+      - name: AI review skipped
+        if: steps.app-token.outcome != 'success'
+        run: echo "::notice::AI review skipped — GitHub App not installed on this repo"
+
+      - name: Checkout AI reviewer
+        if: steps.app-token.outcome == 'success'
+        uses: actions/checkout@v5
+        with:
+          repository: co-cddo/gds-idea-ai-reviewer
+          token: ${{ steps.app-token.outputs.token }}
+          ref: main
+
+      - name: Set up Python
+        if: steps.app-token.outcome == 'success'
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        if: steps.app-token.outcome == 'success'
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "latest"
+
+      - name: Configure AWS credentials (OIDC)
+        if: steps.app-token.outcome == 'success'
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/${{ inputs.aws_role_name }}
+          aws-region: ${{ inputs.aws_region }}
+          role-session-name: ai-reviewer-${{ github.event.repository.name }}
+
+      - name: Install dependencies
+        if: steps.app-token.outcome == 'success'
+        shell: bash
+        run: uv sync --frozen
+
+      - name: Run AI code review
+        if: steps.app-token.outcome == 'success'
+        shell: bash
+        run: uv run python -m ai_reviewer.run
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          MODEL_ID: ${{ inputs.model_id }}
+          AWS_REGION: ${{ inputs.aws_region }}
+          BEDROCK_INFERENCE_PROFILE_ARN: ${{ inputs.inference_profile_arn }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
