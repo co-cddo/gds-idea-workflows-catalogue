@@ -54,7 +54,7 @@ on:
         type: string
         required: false
         default: "arn:aws:bedrock:eu-west-2:992382722318:application-inference-profile/349njfpbtcgo"
-        description: "AI Reviewer inference profile ARN, used for per-team cost tracking. Profile IDs change when a profile is replaced, so callers should pass their own team's ARN."
+        description: "AI Reviewer inference profile ARN, used for per-team cost tracking. Pass your team's ARN to track its costs separately."
 
     secrets:
       GDS_IDEA_AI_REVIEWER_APP_ID:
