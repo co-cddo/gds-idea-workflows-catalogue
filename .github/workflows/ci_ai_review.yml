@@ -43,7 +43,7 @@ on:
       model_id:
         type: string
         required: false
-        default: "anthropic.claude-sonnet-5"
+        default: "anthropic.claude-sonnet-5-5"
         description: "AWS Bedrock model ID for code review"
       aws_region:
         type: string
@@ -53,8 +53,8 @@ on:
       inference_profile_arn:
         type: string
         required: false
-        default: "arn:aws:bedrock:eu-west-2:992382722318:application-inference-profile/lrsdw93ch5ip"
-        description: "AI Reviewer inference profile ARN, used for per-team cost tracking"
+        default: "arn:aws:bedrock:eu-west-2:992382722318:application-inference-profile/349njfpbtcgo"
+        description: "AI Reviewer inference profile ARN, used for per-team cost tracking. Profile IDs change when a profile is replaced, so callers should pass their own team's ARN."
 
     secrets:
       GDS_IDEA_AI_REVIEWER_APP_ID:
