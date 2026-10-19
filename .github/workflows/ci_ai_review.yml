@@ -81,20 +81,20 @@ jobs:
         with:
           client-id: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_ID }}
           private-key: ${{ secrets.GDS_IDEA_AI_REVIEWER_APP_PRIVATE_KEY }}
-          owner: co-cddo
-          repositories: gds-idea-ai-reviewer,${{ github.event.repository.name }}
+          permission-contents: read
+          permission-pull-requests: write
 
       - name: AI review skipped
         if: steps.app-token.outcome != 'success'
-        run: echo "::notice::AI review skipped — GitHub App not installed on this repo"
+        run: echo "::notice::AI review skipped — could not create a GitHub App token (App not installed on this repo, or secrets missing/invalid)"
 
       - name: Checkout AI reviewer
         if: steps.app-token.outcome == 'success'
         uses: actions/checkout@v5
         with:
           repository: co-cddo/gds-idea-ai-reviewer
-          token: ${{ steps.app-token.outputs.token }}
           ref: main
+          persist-credentials: false
 
       - name: Set up Python
         if: steps.app-token.outcome == 'success'
