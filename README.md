@@ -38,3 +38,15 @@ dev → PR → prod → merge → deploy to PROD
 | `pre-commit.yml` | Runs repository pre-commit file. |
 | `terraform-deployment.yml` | Handles continuous deployment of AWS infrastructure using Terraform, deploying approved changes to DEV and PROD environments. |
 | `branch-protection.yml` | Checks if action was triggered with allowed branch. |
+
+## Queued deployments
+
+`cd_workflow_cdk.yml`, `terraform-deployment.yml` (on `apply`) and `auto_tag_release.yml` queue their runs with `queue: max`. If a PR merges while the last deploy is still running, the new deploy waits and then runs. It is not cancelled. This lets you merge a stack of PRs one after another.
+
+The group names are:
+
+- `cdk-deploy-<repo>-<ref>`
+- `tf-apply-<repo>-<workspace>`
+- `release-<repo>`
+
+Do not use these names in your own workflow-level `concurrency`. A matching group in the caller cancels the called job.

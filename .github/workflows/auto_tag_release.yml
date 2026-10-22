@@ -26,6 +26,10 @@ jobs:
   auto-tag:
     name: Tag & Release
     runs-on: ubuntu-latest
+    # Each merge gets its own tag, so runs wait their turn rather than race.
+    concurrency:
+      group: release-${{ github.repository }}
+      queue: max
     permissions:
       contents: write
       pull-requests: read
@@ -114,6 +118,7 @@ jobs:
         if: steps.check.outputs.skip == 'false'
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
+            --target "${{ github.sha }}" \
             --title "${{ steps.version.outputs.tag }}" \
             --generate-notes
         env:

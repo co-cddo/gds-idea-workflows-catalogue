@@ -12,6 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'
     environment: ${{ github.ref == 'refs/heads/prod' && 'PROD' || 'DEV' }}
+    # Deploys to one branch wait their turn and run one at a time.
+    concurrency:
+      group: cdk-deploy-${{ github.repository }}-${{ github.ref }}
+      queue: max
 
     steps:
       - name: Checkout
