@@ -6,12 +6,18 @@ on:
 permissions:
   id-token: write
   contents: read
+  # The caller must grant this too; the failure step uses it to cancel queued deploys.
+  actions: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/prod'
     environment: ${{ github.ref == 'refs/heads/prod' && 'PROD' || 'DEV' }}
+    # Deploys to one branch wait their turn and run one at a time.
+    concurrency:
+      group: cdk-deploy-${{ github.repository }}-${{ github.ref }}
+      queue: max
 
     steps:
       - name: Checkout
@@ -60,3 +66,34 @@ jobs:
           source .venv/bin/activate
           PHASE=${{ github.ref == 'refs/heads/prod' && 'prod' || 'dev' }}
           cdk deploy --all --require-approval never --context phase=$PHASE
+
+      # A failed deploy stops the deploys queued behind it, so newer code waits for a person to look.
+      - name: Cancel deploys queued behind this one
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          WORKFLOW_ID=$(gh api "repos/$REPO/actions/runs/$RUN_ID" --jq .workflow_id)
+          WAITING_RUNS=$(gh api "repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?branch=$BRANCH&per_page=100" \
+            --jq ".workflow_runs[] | select(.status != \"completed\" and .id != $RUN_ID) | .id")
+
+          if [ -z "$WAITING_RUNS" ]; then
+            echo "No deploys queued behind this one."
+            exit 0
+          fi
+
+          for WAITING_RUN in $WAITING_RUNS; do
+            gh run cancel "$WAITING_RUN" --repo "$REPO"
+            echo "::error::Cancelled run $WAITING_RUN because this deploy failed. Fix forward, or re-run it once this failure is understood."
+          done
+
+          {
+            echo "### Queued deploys cancelled"
+            echo "This deploy failed, so these runs on \`$BRANCH\` were cancelled before they reached AWS:"
+            for WAITING_RUN in $WAITING_RUNS; do
+              echo "- https://github.com/$REPO/actions/runs/$WAITING_RUN"
+            done
+          } >> "$GITHUB_STEP_SUMMARY"

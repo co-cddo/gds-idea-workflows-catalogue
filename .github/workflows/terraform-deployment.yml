@@ -51,6 +51,10 @@ on:
 jobs:
   terraform_deployment:
     runs-on: ubuntu-latest
+    # Applies to one workspace run one at a time; each plan gets its own group.
+    concurrency:
+      group: ${{ inputs.terraform_var_command == 'apply' && format('tf-apply-{0}-{1}', github.repository, inputs.terraform_workspace) || format('tf-plan-{0}', github.run_id) }}
+      queue: max
     permissions:
       id-token: write
       contents: read
