@@ -50,3 +50,17 @@ The group names are:
 - `release-<repo>`
 
 Do not use these names in your own workflow-level `concurrency`. A matching group in the caller cancels the called job.
+
+If a `cd_workflow_cdk.yml` deploy fails, it cancels the runs of the same workflow that are waiting on the same branch. Newer code does not deploy on top of a failure until someone has looked. To deploy anyway, re-run the cancelled run, or merge a fix.
+
+The job that calls `cd_workflow_cdk.yml` must grant `actions: write`, which the cancel step needs. Without it, the run fails at startup:
+
+```yaml
+  cd:
+    uses: co-cddo/gds-idea-workflows-catalogue/.github/workflows/cd_workflow_cdk.yml@main
+    permissions:
+      id-token: write
+      contents: read
+      actions: write
+    secrets: inherit
+```
