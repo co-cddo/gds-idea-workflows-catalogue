@@ -42,15 +42,34 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
+      - name: Determine CDK role suffix for gds-dtx repos
+        id: role-suffix
+        run: |
+          if [ "${{ github.repository_owner }}" = "gds-dtx" ]; then
+            REPO_NAME="${{ github.event.repository.name }}"
+            case "$REPO_NAME" in
+              gds-idea-app-*)
+                SUFFIX="-${REPO_NAME#gds-idea-app-}"
+                ;;
+              *)
+                echo "::error::Repository '$REPO_NAME' in gds-dtx must be prefixed with 'gds-idea-app-' to derive the CDK role suffix."
+                exit 1
+                ;;
+            esac
+          else
+            SUFFIX=""
+          fi
+          echo "SUFFIX=$SUFFIX" >> "$GITHUB_OUTPUT"
+
       - name: Select env from PR target branch
         id: env
         run: |
           if [ "${{ github.base_ref }}" = "dev" ]; then
             echo "PHASE=dev" >> $GITHUB_OUTPUT
-            echo "ROLE_ARN=arn:aws:iam::992382722318:role/cdk-dev-diff" >> $GITHUB_OUTPUT
+            echo "ROLE_ARN=arn:aws:iam::992382722318:role/cdk-dev-diff${{ steps.role-suffix.outputs.SUFFIX }}" >> $GITHUB_OUTPUT
           elif [ "${{ github.base_ref }}" = "prod" ]; then
             echo "PHASE=prod" >> $GITHUB_OUTPUT
-            echo "ROLE_ARN=arn:aws:iam::588077357019:role/cdk-prod-diff" >> $GITHUB_OUTPUT
+            echo "ROLE_ARN=arn:aws:iam::588077357019:role/cdk-prod-diff${{ steps.role-suffix.outputs.SUFFIX }}" >> $GITHUB_OUTPUT
           else
             echo "Unsupported base branch: ${{ github.base_ref }}"
             exit 1
