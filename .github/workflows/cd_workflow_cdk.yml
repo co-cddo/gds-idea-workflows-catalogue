@@ -30,11 +30,30 @@ jobs:
       - name: Install dependencies
         run: uv sync --all-extras
 
+      - name: Determine CDK role suffix for gds-dtx repos
+        id: role-suffix
+        run: |
+          if [ "${{ github.repository_owner }}" = "gds-dtx" ]; then
+            REPO_NAME="${{ github.event.repository.name }}"
+            case "$REPO_NAME" in
+              gds-idea-app-*)
+                SUFFIX="-${REPO_NAME#gds-idea-app-}"
+                ;;
+              *)
+                echo "::error::Repository '$REPO_NAME' in gds-dtx must be prefixed with 'gds-idea-app-' to derive the CDK role suffix."
+                exit 1
+                ;;
+            esac
+          else
+            SUFFIX=""
+          fi
+          echo "SUFFIX=$SUFFIX" >> "$GITHUB_OUTPUT"
+
       - name: Configure AWS credentials (OIDC) for Dev deployment
         if: github.ref == 'refs/heads/dev'
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::992382722318:role/cdk-dev-deploy
+          role-to-assume: arn:aws:iam::992382722318:role/cdk-dev-deploy${{ steps.role-suffix.outputs.SUFFIX }}
           aws-region: eu-west-2
           role-session-name: ${{ github.event.repository.name }}
 
@@ -42,7 +61,7 @@ jobs:
         if: github.ref == 'refs/heads/prod'
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::588077357019:role/cdk-prod-deploy
+          role-to-assume: arn:aws:iam::588077357019:role/cdk-prod-deploy${{ steps.role-suffix.outputs.SUFFIX }}
           aws-region: eu-west-2
           role-session-name: ${{ github.event.repository.name }}
 
